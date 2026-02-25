@@ -95,8 +95,11 @@ function addImage(file, dataUrl) {
     state.set(id, item);
     setSelected(id);
     setPending("Upload processing — this may take a few minutes.");
-    if (!isStaticDemo) generateCenterlinePreview();
-    else preview.textContent = "Preview requires the Python server. Run server.py locally or set API_BASE to your Render URL.";
+    if (!isStaticDemo || API_BASE) {
+      requestAnimationFrame(() => generateCenterlinePreview());
+    } else {
+      preview.textContent = "Preview requires the Python server. Run server.py locally or set API_BASE to your Render URL.";
+    }
     // no thumbs
   };
 
