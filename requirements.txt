@@ -1,0 +1,7 @@
+numpy
+pillow
+scikit-image
+opencv-python-headless
+svgwrite
+cairosvg
+skan

@@ -12,6 +12,17 @@ ROOT = Path(__file__).resolve().parent
 CENTERLINE = ROOT / "centerline.py"
 
 class Handler(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # CORS for GitHub Pages / external frontend
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.end_headers()
+
     def do_POST(self):
         if self.path != "/centerline":
             self.send_error(404)
@@ -114,6 +125,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.chdir(ROOT)
-    server = HTTPServer(("localhost", 8000), Handler)
-    print("Serving on http://localhost:8000")
+    port = int(os.environ.get("PORT", "8000"))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    print(f"Serving on http://localhost:{port}")
     server.serve_forever()

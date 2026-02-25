@@ -32,6 +32,7 @@ let viewY = 0;
 const state = new Map();
 let selectedId = null;
 let zCounter = 1;
+const API_BASE = isStaticDemo ? "https://YOUR-RENDER-URL" : "";
 
 function setSelected(id) {
   selectedId = id;
@@ -91,7 +92,8 @@ function addImage(file, dataUrl) {
     };
     state.set(id, item);
     setSelected(id);
-    generateCenterlinePreview();
+    if (!isStaticDemo) generateCenterlinePreview();
+    else preview.textContent = "Preview requires the Python server. Run server.py locally or set API_BASE to your Render URL.";
     // no thumbs
   };
 
@@ -208,7 +210,7 @@ async function generateCenterlineFor(id) {
   fd.append("epsilon", sliders.epsilon.value || mapPointsToEpsilon(sliders.pointAmount.value));
   fd.append("curve", sliders.curveSmooth.value);
   fd.append("stroke", sliders.strokeWidth.value);
-  const res = await fetch("/centerline", { method: "POST", body: fd });
+  const res = await fetch(`${API_BASE}/centerline`, { method: "POST", body: fd });
   if (!res.ok) throw new Error(await res.text());
   const svg = await res.text();
   item.svg = svg;
@@ -216,6 +218,10 @@ async function generateCenterlineFor(id) {
 }
 
 async function generateCenterlinePreview() {
+  if (isStaticDemo) {
+    preview.textContent = "Preview requires the Python server. Run server.py locally or set API_BASE to your Render URL.";
+    return;
+  }
   if (!selectedId) {
     preview.textContent = "Select an image to preview.";
     if (downloadLink) downloadLink.classList.add("disabled");
@@ -234,7 +240,11 @@ async function generateCenterlinePreview() {
       downloadLink.classList.remove("disabled");
     }
   } catch (err) {
-    preview.textContent = "Preview failed.";
+    if (String(err).includes("405")) {
+      preview.textContent = "Preview needs the local Python server (POST not allowed on GitHub Pages).";
+    } else {
+      preview.textContent = "Preview failed.";
+    }
     console.error(err);
   }
 }
