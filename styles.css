@@ -82,23 +82,23 @@ body {
 .drop-hint {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   color: var(--muted);
   text-align: center;
   font-size: 14px;
-  gap: 8px;
+  gap: 18px;
 }
 
 .drop-icon {
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   border-radius: 18px;
-  background: #fff;
   display: grid;
   place-items: center;
-  margin: 0 auto 10px;
-  box-shadow: var(--shadow);
+  margin: 0 auto;
   color: var(--ink);
 }
 
@@ -133,6 +133,13 @@ body {
 
 label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
 input[type="range"] { width: 100%; margin: 6px 0 12px; }
+.file-input {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
 
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -161,6 +168,7 @@ input[type="range"] { width: 100%; margin: 6px 0 12px; }
   inset: 24px;
   background: rgba(250, 251, 255, 0.9);
   backdrop-filter: blur(6px);
+  display: none;
 }
 
 .preview-viewport {

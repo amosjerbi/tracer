@@ -16,12 +16,13 @@
           <div class="drop-hint">
             <div class="drop-icon"><i class="ph ph-file-image"></i></div>
             <div>Drag & Drop / Paste / Click to Upload an Image</div>
-            <div class="muted">PNG recommended</div>
-            <label class="pill small">
-              <i class="ph ph-image-square"></i>
-              <input id="fileInput" type="file" accept="image/png" multiple hidden />
-              Browse Files
-            </label>
+            <div class="row">
+              <label for="fileInput" class="pill small">
+                <i class="ph ph-image-square"></i>
+                Add Image
+              </label>
+            </div>
+            <input id="fileInput" class="file-input" type="file" accept="image/png" multiple />
           </div>
           <div id="preview" class="preview preview-in-canvas">Drag & drop an image to auto‑generate the centerline preview.</div>
         </div>

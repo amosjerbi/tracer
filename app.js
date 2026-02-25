@@ -1,5 +1,6 @@
 const canvas = document.getElementById("canvas");
 const fileInput = document.getElementById("fileInput");
+const addImageBtn = document.getElementById("addImageBtn");
 // thumbs removed
 
 const sliders = {
@@ -135,6 +136,9 @@ function handleFiles(files) {
 }
 
 fileInput.addEventListener("change", (e) => handleFiles(e.target.files));
+if (addImageBtn) {
+  addImageBtn.addEventListener("click", () => fileInput.click());
+}
 
 canvas.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -227,7 +231,8 @@ async function generateCenterlinePreview() {
     return;
   }
   if (!selectedId) {
-    preview.textContent = "Select an image to preview.";
+    preview.textContent = "Drag & drop an image to auto‑generate the centerline preview.";
+    preview.style.display = "none";
     if (downloadLink) downloadLink.classList.add("disabled");
     return;
   }
@@ -257,6 +262,7 @@ async function generateCenterlinePreview() {
 
 function setPreviewContent(svgText) {
   preview.innerHTML = "";
+  preview.style.display = "grid";
   const viewport = document.createElement("div");
   viewport.className = "preview-viewport";
   const content = document.createElement("div");
