@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canvas Tweaker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="app">
+    <main class="main">
+      <section class="workspace">
+        <div class="dropzone card" id="canvas">
+          <div class="drop-hint">
+            <div class="drop-icon"><i class="ph ph-file-image"></i></div>
+            <div>Drag & Drop / Paste / Click to Upload an Image</div>
+            <div class="muted">PNG recommended</div>
+            <label class="pill small">
+              <i class="ph ph-image-square"></i>
+              <input id="fileInput" type="file" accept="image/png" multiple hidden />
+              Browse Files
+            </label>
+          </div>
+          <div id="preview" class="preview preview-in-canvas">Drag & drop an image to auto‑generate the centerline preview.</div>
+        </div>
+
+        <aside class="panel card">
+          <div class="panel-head">
+            <h2>Image Tracer</h2>
+            <div class="muted">Centerline SVG preview</div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-title">Levels Adjustment</div>
+            <label>White Threshold <span id="whiteVal">240</span></label>
+            <input id="whiteThreshold" type="range" min="200" max="255" step="1" value="240" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-title">Curve Settings</div>
+            <label>Vector Points <span id="pointVal">60</span></label>
+            <input id="pointAmount" type="range" min="10" max="100" step="1" value="60" />
+            <label>Epsilon <span id="epsilonVal">6.0</span></label>
+            <input id="epsilon" type="range" min="1" max="12" step="0.5" value="6" />
+            <label>Curve Smooth <span id="curveVal">2</span></label>
+            <input id="curveSmooth" type="range" min="0" max="6" step="1" value="2" />
+            <label>Stroke Width <span id="strokeVal">15.0</span></label>
+            <input id="strokeWidth" type="range" min="0.1" max="30" step="0.1" value="15" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-title">SVG Conversion</div>
+            <div class="row">
+              <a id="downloadLink" class="pill disabled" href="#" download aria-disabled="true">Download SVG</a>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

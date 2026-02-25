@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+import os
+import tempfile
+import subprocess
+import sys
+from pathlib import Path
+from email.parser import BytesParser
+from email.policy import default
+
+ROOT = Path(__file__).resolve().parent
+CENTERLINE = ROOT / "centerline.py"
+
+class Handler(SimpleHTTPRequestHandler):
+    def do_POST(self):
+        if self.path != "/centerline":
+            self.send_error(404)
+            return
+
+        content_type = self.headers.get("content-type")
+        if not content_type or "multipart/form-data" not in content_type:
+            self.send_error(400, "Expected multipart/form-data")
+            return
+
+        try:
+            length = int(self.headers.get("content-length", "0"))
+        except Exception:
+            length = 0
+        if length <= 0:
+            self.send_error(400, "Empty body")
+            return
+
+        body = self.rfile.read(length)
+        msg = BytesParser(policy=default).parsebytes(
+            f"Content-Type: {content_type}\r\n\r\n".encode("utf-8") + body
+        )
+
+        parts = {}
+        if msg.is_multipart():
+            for part in msg.iter_parts():
+                name = part.get_param("name", header="content-disposition")
+                if not name:
+                    continue
+                parts[name] = part
+
+        file_part = parts.get("file")
+        if not file_part:
+            self.send_error(400, "Missing file")
+            return
+
+        threshold = parts.get("threshold")
+        if threshold:
+            threshold = threshold.get_content()
+        else:
+            threshold = "240"
+        epsilon = parts.get("epsilon")
+        if epsilon:
+            epsilon = epsilon.get_content()
+        else:
+            epsilon = "6.0"
+        curve = parts.get("curve")
+        if curve:
+            curve = curve.get_content()
+        else:
+            curve = "2"
+        stroke = parts.get("stroke")
+        if stroke:
+            stroke = stroke.get_content()
+        else:
+            stroke = "15"
+        try:
+            threshold = str(int(threshold))
+        except Exception:
+            threshold = "240"
+        try:
+            epsilon = str(float(epsilon))
+        except Exception:
+            epsilon = "6.0"
+        try:
+            curve = str(int(curve))
+        except Exception:
+            curve = "2"
+        try:
+            stroke = str(float(stroke))
+        except Exception:
+            stroke = "15.0"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            in_path = Path(tmp) / "input.png"
+            out_path = Path(tmp) / "input-preview.svg"
+            with open(in_path, "wb") as f:
+                f.write(file_part.get_payload(decode=True))
+
+            cmd = [sys.executable, str(CENTERLINE), str(in_path), "-preview", threshold, epsilon, curve, stroke]
+            proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
+            if proc.returncode != 0:
+                self.send_error(500, proc.stderr or "Centerline failed")
+                return
+
+            if not out_path.exists():
+                alt = in_path.with_name(f"{in_path.stem}-preview.svg")
+                if alt.exists():
+                    out_path = alt
+                else:
+                    self.send_error(500, "Output SVG not found")
+                    return
+
+            svg = out_path.read_text()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(svg.encode("utf-8"))
+
+if __name__ == "__main__":
+    os.chdir(ROOT)
+    server = HTTPServer(("localhost", 8000), Handler)
+    print("Serving on http://localhost:8000")
+    server.serve_forever()
