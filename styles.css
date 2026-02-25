@@ -17,6 +17,8 @@ body {
   color: var(--ink);
 }
 
+.ph { font-size: 40px; color: #8a94a8; }
+
 .app {
   min-height: 100vh;
 }
