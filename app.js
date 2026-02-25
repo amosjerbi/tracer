@@ -227,7 +227,7 @@ async function generateCenterlineFor(id) {
 }
 
 async function generateCenterlinePreview() {
-  if (isStaticDemo) {
+  if (isStaticDemo && !API_BASE) {
     preview.textContent = "Preview requires the Python server. Run server.py locally or set API_BASE to your Render URL.";
     return;
   }
