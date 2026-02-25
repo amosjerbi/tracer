@@ -33,6 +33,7 @@ let viewY = 0;
 const state = new Map();
 let selectedId = null;
 let zCounter = 1;
+const isStaticDemo = window.location.hostname.endsWith("github.io");
 const API_BASE = isStaticDemo ? "https://tracer-backend-ib4x.onrender.com" : "";
 
 function setSelected(id) {
