@@ -2,6 +2,14 @@
 
 A minimal, local webapp that turns PNGs into **centerline (skeleton) SVGs** using a Python backend.
 
+## Demo
+
+GitHub Pages (master / root):
+
+```
+https://amosjerbi.github.io/tracer/
+```
+
 ## Features
 
 - Drag & drop a PNG → auto‑generates centerline preview
