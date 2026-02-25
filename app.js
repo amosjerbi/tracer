@@ -241,6 +241,7 @@ async function generateCenterlinePreview() {
   try {
     const svg = await generateCenterlineFor(selectedId);
     const item = state.get(selectedId);
+    preview.classList.remove("pending");
     setPreviewContent(svg);
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
@@ -251,9 +252,11 @@ async function generateCenterlinePreview() {
     }
   } catch (err) {
     if (String(err).includes("405")) {
+      preview.classList.remove("pending");
       preview.textContent = "Preview needs the local Python server (POST not allowed on GitHub Pages).";
     } else {
-      preview.textContent = "Preview failed.";
+      preview.classList.remove("pending");
+    preview.textContent = "Preview failed.";
     }
     console.error(err);
   }
@@ -323,3 +326,15 @@ window.addEventListener("keydown", (e) => {
     applyPreviewTransform();
   }
 });
+
+
+function setPending(message) {
+  preview.classList.add("pending");
+  preview.innerHTML = `
+    <div class="pending-wrap">
+      <div class="splash"><span></span><span></span><span></span></div>
+      <div>${message}</div>
+    </div>
+  `;
+  preview.style.display = "grid";
+}
