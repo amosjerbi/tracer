@@ -32,7 +32,7 @@ let viewY = 0;
 const state = new Map();
 let selectedId = null;
 let zCounter = 1;
-const API_BASE = isStaticDemo ? "https://YOUR-RENDER-URL" : "";
+const API_BASE = isStaticDemo ? "https://tracer-backend-ib4x.onrender.com" : "";
 
 function setSelected(id) {
   selectedId = id;
