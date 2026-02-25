@@ -1,6 +1,7 @@
 # Centerline PNG → SVG Webapp
 
 A minimal webapp that turns PNGs into **centerline (skeleton) SVGs** using a Python backend.
+Load images faster by typing in console - generateCenterlinePreview()
 
 ## Demo
 
