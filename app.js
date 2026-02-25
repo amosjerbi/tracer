@@ -339,3 +339,20 @@ function setPending(message) {
   `;
   preview.style.display = "grid";
 }
+
+
+function warmBackend() {
+  if (!API_BASE) return;
+  const fd = new FormData();
+  fd.append("file", new Blob([], { type: "image/png" }), "warmup.png");
+  fd.append("threshold", sliders.whiteThreshold.value);
+  fd.append("epsilon", sliders.epsilon.value || mapPointsToEpsilon(sliders.pointAmount.value));
+  fd.append("curve", sliders.curveSmooth.value);
+  fd.append("stroke", sliders.strokeWidth.value);
+  fetch(`${API_BASE}/centerline`, { method: "POST", body: fd }).catch(() => {});
+}
+
+
+window.addEventListener("load", () => {
+  warmBackend();
+});
