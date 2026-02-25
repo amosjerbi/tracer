@@ -73,7 +73,7 @@ body {
 }
 
 .dropzone {
-  min-height: 140%;
+  min-height: 560px;
   background: linear-gradient(180deg, #f9fafc 0%, #f0f3f9 100%);
   border: 1px dashed #d7ddeb;
   border-radius: 18px;
@@ -144,6 +144,7 @@ input[type="range"] { width: 100%; margin: 6px 0 12px; }
 }
 
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.mobile-upload-row { display: none; }
 
 .toggle {
   display: flex;
@@ -274,4 +275,7 @@ input[type="range"] { width: 100%; margin: 6px 0 12px; }
 @media (max-width: 980px) {
   .main { padding: 20px; }
   .workspace { grid-template-columns: 1fr; }
+  .mobile-upload-row { display: flex; }
+  .dropzone { min-height: clamp(280px, 35vh, 520px); }
+  .preview-in-canvas { inset: 12px; }
 }
