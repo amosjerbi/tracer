@@ -147,6 +147,10 @@ canvas.addEventListener("drop", (e) => {
   handleFiles(e.dataTransfer.files);
 });
 
+// Prevent the browser from opening the file on drop
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => e.preventDefault());
+
 Object.entries(sliders).forEach(([key, input]) => {
   input.addEventListener("input", () => {
     if (syncingSliders) return;
