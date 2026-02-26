@@ -83,7 +83,13 @@ Commit + push, and GitHub Pages will now use the hosted backend.
 - `cairosvg`
 - `skan`
 
-Install locally:
+Install locally (explicit packages):
+
+```bash
+python -m pip install numpy pillow scikit-image opencv-python-headless svgwrite cairosvg skan
+```
+
+Install locally (requirements file):
 
 ```bash
 python -m pip install -r requirements.txt
