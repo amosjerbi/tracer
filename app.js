@@ -33,7 +33,10 @@ let viewY = 0;
 const state = new Map();
 let selectedId = null;
 let zCounter = 1;
-const isStaticDemo = window.location.hostname.endsWith("github.io");
+const STATIC_HOSTS = new Set(["tracer.ajerbi.com", "www.tracer.ajerbi.com"]);
+const isStaticDemo =
+  window.location.hostname.endsWith("github.io") ||
+  STATIC_HOSTS.has(window.location.hostname);
 const API_BASE = isStaticDemo ? "https://tracer-backend-ib4x.onrender.com" : "";
 
 function setSelected(id) {
