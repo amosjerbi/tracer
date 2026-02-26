@@ -15,15 +15,15 @@
         <div class="dropzone card" id="canvas">
           <div class="drop-hint">
             <div class="drop-icon"><i class="ph ph-file-image"></i></div>
-            <div>Drag & Drop / Paste / Click to Upload an Image</div>
+            <div>Drag & Drop / Paste / Click to Upload a PNG, JPG, or SVG</div>
             <div class="row">
               <label for="fileInput" class="pill small">
                 Add Image
               </label>
             </div>
-            <input id="fileInput" class="file-input" type="file" accept="image/png" multiple />
+            <input id="fileInput" class="file-input" type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml" multiple />
           </div>
-          <div id="preview" class="preview preview-in-canvas">Drag & drop an image to auto‑generate the centerline preview.</div>
+          <div id="preview" class="preview preview-in-canvas">Drag & drop a PNG, JPG, or SVG to auto‑generate the centerline preview.</div>
         </div>
 
         <aside class="panel card">
@@ -58,6 +58,7 @@
             <div class="control-title">SVG Conversion</div>
             <div class="row">
               <a id="downloadLink" class="pill disabled" href="#" download aria-disabled="true">Download SVG</a>
+              <button id="copyBtn" class="pill disabled" type="button" aria-disabled="true">Copy SVG</button>
             </div>
           </div>
         </aside>

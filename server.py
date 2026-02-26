@@ -96,8 +96,22 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception:
             stroke = "15.0"
 
+        def pick_extension(part):
+            filename = part.get_filename() or ""
+            suffix = Path(filename).suffix.lower()
+            if suffix in {".png", ".jpg", ".jpeg", ".svg"}:
+                return suffix
+            ctype = part.get_content_type()
+            if ctype == "image/svg+xml":
+                return ".svg"
+            if ctype == "image/jpeg":
+                return ".jpg"
+            if ctype == "image/png":
+                return ".png"
+            return ".png"
+
         with tempfile.TemporaryDirectory() as tmp:
-            in_path = Path(tmp) / "input.png"
+            in_path = Path(tmp) / f"input{pick_extension(file_part)}"
             out_path = Path(tmp) / "input-preview.svg"
             with open(in_path, "wb") as f:
                 f.write(file_part.get_payload(decode=True))

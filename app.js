@@ -24,6 +24,7 @@ const deleteBtn = document.getElementById("deleteBtn");
 // centerlineAll removed
 const preview = document.getElementById("preview");
 const downloadLink = document.getElementById("downloadLink");
+const copyBtn = document.getElementById("copyBtn");
 let liveTimer = null;
 let syncingSliders = false;
 let viewScale = 1;
@@ -39,12 +40,40 @@ const isStaticDemo =
   STATIC_HOSTS.has(window.location.hostname);
 const API_BASE = isStaticDemo ? "https://tracer-backend-ib4x.onrender.com" : "";
 
+const SUPPORTED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/svg+xml",
+]);
+const SUPPORTED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".svg"]);
+
+function isSupportedFile(file) {
+  if (!file) return false;
+  if (file.type && SUPPORTED_MIME_TYPES.has(file.type)) return true;
+  const name = file.name || "";
+  const dot = name.lastIndexOf(".");
+  if (dot === -1) return false;
+  const ext = name.slice(dot).toLowerCase();
+  return SUPPORTED_EXTENSIONS.has(ext);
+}
+
+function setPillDisabled(el, disabled) {
+  if (!el) return;
+  el.classList.toggle("disabled", disabled);
+  el.setAttribute("aria-disabled", disabled ? "true" : "false");
+}
+
 function setSelected(id) {
   selectedId = id;
   document.querySelectorAll(".draggable").forEach((el) => {
     el.classList.toggle("selected", el.dataset.id === id);
   });
   syncControls();
+  const item = state.get(id);
+  const hasSvg = item && item.svg;
+  setPillDisabled(downloadLink, !hasSvg);
+  setPillDisabled(copyBtn, !hasSvg);
 }
 
 function syncControls() {
@@ -94,6 +123,7 @@ function addImage(file, dataUrl) {
       el: img,
       z: zCounter++,
       svg: null,
+      file,
     };
     state.set(id, item);
     setSelected(id);
@@ -136,7 +166,7 @@ function startDrag(e, id) {
 
 function handleFiles(files) {
   [...files].forEach((file) => {
-    if (!file.type.includes("png")) return;
+    if (!isSupportedFile(file)) return;
     const reader = new FileReader();
     reader.onload = (e) => addImage(file, e.target.result);
     reader.readAsDataURL(file);
@@ -195,6 +225,10 @@ if (deleteBtn) {
     item.el.remove();
     state.delete(selectedId);
     selectedId = null;
+    setPillDisabled(downloadLink, true);
+    setPillDisabled(copyBtn, true);
+    preview.textContent = "Drag & drop a PNG, JPG, or SVG to auto‑generate the centerline preview.";
+    preview.style.display = "none";
   });
 }
 
@@ -218,10 +252,14 @@ async function renderSelectedToBlob(id = selectedId) {
 async function generateCenterlineFor(id) {
   const item = state.get(id);
   if (!item) return;
-  const blob = await renderSelectedToBlob(id);
-  if (!blob) return;
+  const uploadBlob = item.file || await renderSelectedToBlob(id);
+  if (!uploadBlob) return;
   const fd = new FormData();
-  fd.append("file", blob, "preview.png");
+  if (uploadBlob instanceof File) {
+    fd.append("file", uploadBlob, uploadBlob.name);
+  } else {
+    fd.append("file", uploadBlob, "preview.png");
+  }
   fd.append("threshold", sliders.whiteThreshold.value);
   fd.append("epsilon", sliders.epsilon.value || mapPointsToEpsilon(sliders.pointAmount.value));
   fd.append("curve", sliders.curveSmooth.value);
@@ -241,7 +279,8 @@ async function generateCenterlinePreview() {
   if (!selectedId) {
     preview.textContent = "Drag & drop an image to auto‑generate the centerline preview.";
     preview.style.display = "none";
-    if (downloadLink) downloadLink.classList.add("disabled");
+    setPillDisabled(downloadLink, true);
+    setPillDisabled(copyBtn, true);
     return;
   }
   preview.textContent = "Generating centerline...";
@@ -255,8 +294,9 @@ async function generateCenterlinePreview() {
     if (downloadLink) {
       downloadLink.href = url;
       downloadLink.download = `${selectedId}-centerline.svg`;
-      downloadLink.classList.remove("disabled");
     }
+    setPillDisabled(downloadLink, false);
+    setPillDisabled(copyBtn, false);
   } catch (err) {
     if (String(err).includes("405")) {
       preview.classList.remove("pending");
@@ -265,6 +305,7 @@ async function generateCenterlinePreview() {
       preview.classList.remove("pending");
     preview.textContent = "Preview failed.";
     }
+    setPillDisabled(copyBtn, true);
     console.error(err);
   }
 }
@@ -356,6 +397,51 @@ function warmBackend() {
   fd.append("curve", sliders.curveSmooth.value);
   fd.append("stroke", sliders.strokeWidth.value);
   fetch(`${API_BASE}/centerline`, { method: "POST", body: fd }).catch(() => {});
+}
+
+async function copySvgToClipboard() {
+  if (!selectedId) return;
+  const item = state.get(selectedId);
+  if (!item) return;
+  let svg = item.svg;
+  if (!svg) {
+    try {
+      svg = await generateCenterlineFor(selectedId);
+      if (svg) item.svg = svg;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+  if (!svg) return;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(svg);
+      copyBtn.textContent = "Copied";
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = svg;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      copyBtn.textContent = "Copied";
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setTimeout(() => {
+      if (copyBtn) copyBtn.textContent = "Copy SVG";
+    }, 1200);
+  }
+}
+
+if (copyBtn) {
+  copyBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (copyBtn.classList.contains("disabled")) return;
+    copySvgToClipboard();
+  });
 }
 
 
