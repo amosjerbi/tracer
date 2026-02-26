@@ -19,22 +19,6 @@ const readouts = {
   strokeVal: document.getElementById("strokeVal"),
 };
 
-const shapeControls = {
-  group: document.getElementById("shapeDetectionGroup"),
-  summary: document.getElementById("shapeDetectionSummary"),
-  toggle: document.getElementById("shapeDetectToggle"),
-  warning: document.getElementById("shapeWarning"),
-  options: document.getElementById("shapeOptions"),
-  detectRects: document.getElementById("detectRects"),
-  detectEllipses: document.getElementById("detectEllipses"),
-  confidence: document.getElementById("shapeConfidence"),
-  confidenceVal: document.getElementById("shapeConfidenceVal"),
-  cornerWrap: document.getElementById("cornerToleranceWrap"),
-  cornerTol: document.getElementById("cornerTolerance"),
-  cornerTolVal: document.getElementById("cornerToleranceVal"),
-  highlight: document.getElementById("highlightShapes"),
-};
-
 const resetBtn = document.getElementById("resetBtn");
 const deleteBtn = document.getElementById("deleteBtn");
 // centerlineAll removed
@@ -55,10 +39,6 @@ const isStaticDemo =
   window.location.hostname.endsWith("github.io") ||
   STATIC_HOSTS.has(window.location.hostname);
 const API_BASE = isStaticDemo ? "https://tracer-backend-ib4x.onrender.com" : "";
-let shapeRunId = 0;
-let shapeWorker = null;
-let shapeWorkerRequestId = 0;
-const shapeWorkerCallbacks = new Map();
 
 const SUPPORTED_MIME_TYPES = new Set([
   "image/png",
@@ -76,27 +56,6 @@ function isSupportedFile(file) {
   if (dot === -1) return false;
   const ext = name.slice(dot).toLowerCase();
   return SUPPORTED_EXTENSIONS.has(ext);
-}
-
-function isShapeDetectionEnabled() {
-  return !!(shapeControls.toggle && shapeControls.toggle.checked);
-}
-
-function getShapeTolerance() {
-  const value = Number(shapeControls.confidence?.value || 70);
-  return Math.max(0, Math.min(1, value / 100));
-}
-
-function updateShapeUI() {
-  if (!shapeControls.toggle) return;
-  const enabled = isShapeDetectionEnabled();
-  if (shapeControls.options) shapeControls.options.hidden = !enabled;
-  if (shapeControls.confidenceVal) shapeControls.confidenceVal.textContent = shapeControls.confidence.value;
-  if (shapeControls.cornerTolVal) shapeControls.cornerTolVal.textContent = `${shapeControls.cornerTol.value}px`;
-  if (shapeControls.cornerWrap) {
-    const showCorner = shapeControls.detectRects?.checked;
-    shapeControls.cornerWrap.style.display = showCorner ? "block" : "none";
-  }
 }
 
 function setPillDisabled(el, disabled) {
@@ -250,30 +209,6 @@ Object.entries(sliders).forEach(([key, input]) => {
   });
 });
 
-if (shapeControls.toggle) {
-  shapeControls.toggle.addEventListener("change", () => {
-    if (shapeControls.warning) shapeControls.warning.hidden = true;
-    updateShapeUI();
-    generateCenterlinePreview();
-  });
-}
-
-
-[
-  shapeControls.detectRects,
-  shapeControls.detectEllipses,
-  shapeControls.confidence,
-  shapeControls.cornerTol,
-  shapeControls.highlight,
-].forEach((input) => {
-  if (!input) return;
-  input.addEventListener("input", () => {
-    updateShapeUI();
-    clearTimeout(liveTimer);
-    liveTimer = setTimeout(generateCenterlinePreview, 200);
-  });
-});
-
 if (resetBtn) {
   resetBtn.addEventListener("click", () => {
     const item = state.get(selectedId);
@@ -294,8 +229,6 @@ if (deleteBtn) {
     setPillDisabled(copyBtn, true);
     preview.textContent = "Drag & drop a PNG, JPG, or SVG to auto‑generate the centerline preview.";
     preview.style.display = "none";
-    updatePreviewBadge(null, false);
-    updatePreviewLegend(false);
   });
 }
 
@@ -314,82 +247,6 @@ async function renderSelectedToBlob(id = selectedId) {
   ctx.drawImage(img, 0, 0, w, h);
 
   return await new Promise((resolve) => c.toBlob(resolve, "image/png"));
-}
-
-function renderSelectedToCanvas(id = selectedId) {
-  const item = state.get(id);
-  if (!item) return null;
-  const img = item.el;
-  const w = img.naturalWidth;
-  const h = img.naturalHeight;
-  if (!w || !h) return null;
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext("2d");
-  ctx.drawImage(img, 0, 0, w, h);
-  return c;
-}
-
-function buildDetectionCanvas(sourceCanvas, maxDim = 1024) {
-  const w = sourceCanvas.width;
-  const h = sourceCanvas.height;
-  const maxSide = Math.max(w, h);
-  if (maxSide <= maxDim) return { canvas: sourceCanvas, scale: 1 };
-  const scale = maxDim / maxSide;
-  const dw = Math.round(w * scale);
-  const dh = Math.round(h * scale);
-  const c = document.createElement("canvas");
-  c.width = dw;
-  c.height = dh;
-  const ctx = c.getContext("2d");
-  ctx.drawImage(sourceCanvas, 0, 0, dw, dh);
-  return { canvas: c, scale };
-}
-
-function getShapeWorker() {
-  if (shapeWorker) return shapeWorker;
-  shapeWorker = new Worker("shape-worker.js");
-  shapeWorker.onmessage = (e) => {
-    const { id, ok, result, error } = e.data || {};
-    const handler = shapeWorkerCallbacks.get(id);
-    if (!handler) return;
-    shapeWorkerCallbacks.delete(id);
-    if (ok) handler.resolve(result);
-    else handler.reject(new Error(error || "Shape detection failed"));
-  };
-  shapeWorker.onerror = () => {
-    shapeWorkerCallbacks.forEach(({ reject }) => reject(new Error("Shape detection worker error")));
-    shapeWorkerCallbacks.clear();
-  };
-  return shapeWorker;
-}
-
-function runShapeWorker(imageData, scale, options) {
-  let worker;
-  try {
-    worker = getShapeWorker();
-  } catch (err) {
-    return Promise.reject(err);
-  }
-  const id = ++shapeWorkerRequestId;
-  return new Promise((resolve, reject) => {
-    shapeWorkerCallbacks.set(id, { resolve, reject });
-    worker.postMessage(
-      {
-        id,
-        type: "detect",
-        payload: {
-          width: imageData.width,
-          height: imageData.height,
-          buffer: imageData.data.buffer,
-          scale,
-          options,
-        },
-      },
-      [imageData.data.buffer]
-    );
-  });
 }
 
 async function generateCenterlineFor(id) {
@@ -414,35 +271,11 @@ async function generateCenterlineFor(id) {
   return svg;
 }
 
-async function generateShapeSvgFor(id) {
-  const item = state.get(id);
-  if (!item) return null;
-  const canvas = renderSelectedToCanvas(id);
-  if (!canvas) return null;
-  const { canvas: detectCanvas, scale } = buildDetectionCanvas(canvas, 1024);
-  const ctx = detectCanvas.getContext("2d");
-  const imageData = ctx.getImageData(0, 0, detectCanvas.width, detectCanvas.height);
-  const type = item.file?.type || "";
-  const name = item.file?.name || "";
-  const isJpeg = type === "image/jpeg" || name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".jpeg");
-  const options = {
-    threshold: Number(sliders.whiteThreshold.value),
-    shapeTolerance: getShapeTolerance(),
-    detectRects: !!shapeControls.detectRects?.checked,
-    detectEllipses: !!shapeControls.detectEllipses?.checked,
-    cornerTolerance: Number(shapeControls.cornerTol?.value || 0) * scale,
-    highlight: !!shapeControls.highlight?.checked,
-    pathEpsilon: Number(sliders.epsilon.value) * scale,
-    curveSmooth: Number(sliders.curveSmooth.value),
-    strokeWidth: Number(sliders.strokeWidth.value),
-    isJpeg,
-    originalWidth: canvas.width,
-    originalHeight: canvas.height,
-  };
-  return await runShapeWorker(imageData, scale, options);
-}
-
 async function generateCenterlinePreview() {
+  if (isStaticDemo && !API_BASE) {
+    preview.textContent = "Preview requires the Python server. Run server.py locally or set API_BASE to your Render URL.";
+    return;
+  }
   if (!selectedId) {
     preview.textContent = "Drag & drop an image to auto‑generate the centerline preview.";
     preview.style.display = "none";
@@ -452,51 +285,10 @@ async function generateCenterlinePreview() {
   }
   preview.textContent = "Generating centerline...";
   try {
-    const item = state.get(selectedId);
-    if (!item) return;
-    if (isShapeDetectionEnabled()) {
-      const runId = ++shapeRunId;
-      let result;
-      try {
-        result = await generateShapeSvgFor(selectedId);
-      } catch (err) {
-        if (shapeControls.warning) shapeControls.warning.hidden = false;
-        if (shapeControls.toggle) {
-          shapeControls.toggle.checked = false;
-          shapeControls.toggle.disabled = true;
-        }
-        throw err;
-      }
-      if (runId !== shapeRunId) return;
-      if (!result) throw new Error("Shape detection failed");
-      item.svg = result.svg;
-      item.previewSvg = result.previewSvg;
-      item.shapeCounts = result.counts;
-      preview.classList.remove("pending");
-      setPreviewContent(result.previewSvg);
-      updatePreviewBadge(result.counts, !!shapeControls.highlight?.checked);
-      updatePreviewLegend(!!shapeControls.highlight?.checked);
-      const blob = new Blob([result.svg], { type: "image/svg+xml" });
-      const url = URL.createObjectURL(blob);
-      if (downloadLink) {
-        downloadLink.href = url;
-        downloadLink.download = `${selectedId}-centerline.svg`;
-      }
-      setPillDisabled(downloadLink, false);
-      setPillDisabled(copyBtn, false);
-      return;
-    }
-
-    if (isStaticDemo && !API_BASE) {
-      preview.textContent = "Preview requires the Python server. Run server.py locally or set API_BASE to your Render URL.";
-      return;
-    }
-
     const svg = await generateCenterlineFor(selectedId);
+    const item = state.get(selectedId);
     preview.classList.remove("pending");
     setPreviewContent(svg);
-    updatePreviewBadge(null, false);
-    updatePreviewLegend(false);
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
     if (downloadLink) {
@@ -514,8 +306,6 @@ async function generateCenterlinePreview() {
     preview.textContent = "Preview failed.";
     }
     setPillDisabled(copyBtn, true);
-    updatePreviewBadge(null, false);
-    updatePreviewLegend(false);
     console.error(err);
   }
 }
@@ -572,40 +362,6 @@ function applyPreviewTransform() {
   content.style.transform = `translate(${viewX}px, ${viewY}px) scale(${viewScale}) translate(-50%, -50%)`;
 }
 
-function updatePreviewBadge(counts, enabled) {
-  const existing = preview.querySelector(".preview-badge");
-  if (!enabled || !counts) {
-    if (existing) existing.remove();
-    return;
-  }
-  const label = `${counts.rects} rects · ${counts.ellipses} ellipses · ${counts.paths} paths`;
-  if (existing) {
-    existing.textContent = label;
-    return;
-  }
-  const badge = document.createElement("div");
-  badge.className = "preview-badge";
-  badge.textContent = label;
-  preview.appendChild(badge);
-}
-
-function updatePreviewLegend(enabled) {
-  const existing = preview.querySelector(".preview-legend");
-  if (!enabled) {
-    if (existing) existing.remove();
-    return;
-  }
-  if (existing) return;
-  const legend = document.createElement("div");
-  legend.className = "preview-legend";
-  legend.innerHTML = `
-    <span class="legend-item rect">Rect</span>
-    <span class="legend-item ellipse">Ellipse</span>
-    <span class="legend-item path">Path</span>
-  `;
-  preview.appendChild(legend);
-}
-
 
 
 window.addEventListener("keydown", (e) => {
@@ -633,7 +389,7 @@ function setPending(message) {
 
 
 function warmBackend() {
-  if (!API_BASE || isShapeDetectionEnabled()) return;
+  if (!API_BASE) return;
   const fd = new FormData();
   fd.append("file", new Blob([], { type: "image/png" }), "warmup.png");
   fd.append("threshold", sliders.whiteThreshold.value);
@@ -650,20 +406,7 @@ async function copySvgToClipboard() {
   let svg = item.svg;
   if (!svg) {
     try {
-    if (isShapeDetectionEnabled()) {
-      const result = await generateShapeSvgFor(selectedId);
-      svg = result?.svg;
-      if (result) {
-        item.svg = result.svg;
-        item.previewSvg = result.previewSvg;
-        item.shapeCounts = result.counts;
-        setPreviewContent(result.previewSvg);
-        updatePreviewBadge(result.counts, !!shapeControls.highlight?.checked);
-        updatePreviewLegend(!!shapeControls.highlight?.checked);
-      }
-    } else {
-        svg = await generateCenterlineFor(selectedId);
-      }
+      svg = await generateCenterlineFor(selectedId);
       if (svg) item.svg = svg;
     } catch (err) {
       console.error(err);
@@ -704,5 +447,4 @@ if (copyBtn) {
 
 window.addEventListener("load", () => {
   warmBackend();
-  updateShapeUI();
 });
