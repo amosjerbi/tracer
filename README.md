@@ -1,7 +1,6 @@
 # Centerline PNG → SVG Webapp
 
-A minimal webapp that turns PNGs into **centerline (skeleton) SVGs** using a Python backend.
-Load images faster by typing in console - generateCenterlinePreview()
+A minimal webapp that turns PNGs/JPGs/SVGs into **centerline (skeleton) SVGs** using a Python backend, with optional **Perfect Circle (Fit)** and **Rect** detection for clean geometric outputs.
 
 ## Demo
 
@@ -13,12 +12,10 @@ https://amosjerbi.github.io/tracer/
 ## Local run
 
 For full functionality, you need the backend (local or hosted).
-Downloads/tracer-master:
 
 1. Create and activate a venv, install deps
-2. 
 ```
-cd /Users/amosjerbi/Downloads/tracer-master
+cd /Users/amosjerbi/Documents/tracer
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
@@ -29,10 +26,6 @@ python -m pip install -r requirements.txt
 
 ```
 . .venv/bin/activate && python server.py
-```
-
-```
-python server.py
 ```
 
 3. Open
@@ -52,22 +45,9 @@ python server.py
 
 - Drag & drop a PNG → auto‑generates centerline preview
 - Adjustable **white threshold**, **vector points**, **epsilon**, **curve smoothing**, and **stroke width**
+- Presets including **Perfect Circle (Fit)** (fits circles/rects where applicable)
 - Download SVG after generation
 - Pan/zoom the preview (drag to pan, `+`/`-` to zoom)
-
-## Run Locally
-
-```bash
-cd /Users/amosjerbi/Desktop/rubber
-. .venv/bin/activate
-python3 server.py
-```
-
-Open:
-
-```
-http://localhost:8000/index.html
-```
 
 ## Deploy Backend on Render (Recommended)
 
@@ -118,7 +98,7 @@ python -m pip install -r requirements.txt
 ## CLI (optional)
 
 ```bash
-python3 centerline.py /path/to/image.png -preview 240 6 2 15
+python3 centerline.py /path/to/image.png -preview 240 6 2 15 centerline
 ```
 
 Args:
@@ -127,3 +107,4 @@ Args:
 - `6` epsilon
 - `2` curve smoothing iterations
 - `15` stroke width
+- `centerline` or `circle` mode (circle mode fits circles/rects per component)

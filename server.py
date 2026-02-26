@@ -79,6 +79,11 @@ class Handler(SimpleHTTPRequestHandler):
             stroke = stroke.get_content()
         else:
             stroke = "15"
+        mode = parts.get("mode")
+        if mode:
+            mode = str(mode.get_content()).strip().lower()
+        else:
+            mode = "centerline"
         try:
             threshold = str(int(threshold))
         except Exception:
@@ -95,6 +100,8 @@ class Handler(SimpleHTTPRequestHandler):
             stroke = str(float(stroke))
         except Exception:
             stroke = "15.0"
+        if mode not in {"centerline", "circle"}:
+            mode = "centerline"
 
         def pick_extension(part):
             filename = part.get_filename() or ""
@@ -116,7 +123,7 @@ class Handler(SimpleHTTPRequestHandler):
             with open(in_path, "wb") as f:
                 f.write(file_part.get_payload(decode=True))
 
-            cmd = [sys.executable, str(CENTERLINE), str(in_path), "-preview", threshold, epsilon, curve, stroke]
+            cmd = [sys.executable, str(CENTERLINE), str(in_path), "-preview", threshold, epsilon, curve, stroke, mode]
             proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
             if proc.returncode != 0:
                 self.send_error(500, proc.stderr or "Centerline failed")

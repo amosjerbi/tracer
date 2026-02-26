@@ -19,6 +19,8 @@ const readouts = {
   strokeVal: document.getElementById("strokeVal"),
 };
 
+const presetSelect = document.getElementById("presetSelect");
+
 const resetBtn = document.getElementById("resetBtn");
 const deleteBtn = document.getElementById("deleteBtn");
 // centerlineAll removed
@@ -47,6 +49,59 @@ const SUPPORTED_MIME_TYPES = new Set([
   "image/svg+xml",
 ]);
 const SUPPORTED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".svg"]);
+
+const PRESETS = {
+  balanced: {
+    threshold: 240,
+    pointAmount: 60,
+    epsilon: 6,
+    curveSmooth: 2,
+    strokeWidth: 15,
+    mode: "centerline",
+  },
+  accurate: {
+    threshold: 245,
+    pointAmount: 95,
+    epsilon: 2.5,
+    curveSmooth: 1,
+    strokeWidth: 10,
+    mode: "centerline",
+  },
+  smooth: {
+    threshold: 235,
+    pointAmount: 80,
+    epsilon: 4,
+    curveSmooth: 4,
+    strokeWidth: 12,
+    mode: "centerline",
+  },
+  clean: {
+    threshold: 231,
+    pointAmount: 39,
+    epsilon: 7,
+    curveSmooth: 2,
+    strokeWidth: 15,
+    mode: "centerline",
+  },
+  bold: {
+    threshold: 230,
+    pointAmount: 50,
+    epsilon: 7,
+    curveSmooth: 3,
+    strokeWidth: 18,
+    mode: "centerline",
+  },
+  circle: {
+    threshold: 240,
+    pointAmount: 80,
+    epsilon: 3,
+    curveSmooth: 2,
+    strokeWidth: 12,
+    mode: "circle",
+  },
+};
+
+let outputMode = PRESETS.balanced.mode;
 
 function isSupportedFile(file) {
   if (!file) return false;
@@ -102,6 +157,22 @@ function updateReadouts() {
   readouts.epsilonVal.textContent = sliders.epsilon.value;
   readouts.curveVal.textContent = sliders.curveSmooth.value;
   readouts.strokeVal.textContent = sliders.strokeWidth.value;
+}
+
+function applyPreset(name) {
+  const preset = PRESETS[name];
+  if (!preset) return;
+  syncingSliders = true;
+  sliders.whiteThreshold.value = preset.threshold;
+  sliders.pointAmount.value = preset.pointAmount;
+  sliders.epsilon.value = preset.epsilon;
+  sliders.curveSmooth.value = preset.curveSmooth;
+  sliders.strokeWidth.value = preset.strokeWidth;
+  outputMode = preset.mode || "centerline";
+  updateReadouts();
+  syncingSliders = false;
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(generateCenterlinePreview, 100);
 }
 
 function applyTransform(item) {
@@ -209,6 +280,12 @@ Object.entries(sliders).forEach(([key, input]) => {
   });
 });
 
+if (presetSelect) {
+  presetSelect.addEventListener("change", () => {
+    applyPreset(presetSelect.value);
+  });
+}
+
 if (resetBtn) {
   resetBtn.addEventListener("click", () => {
     const item = state.get(selectedId);
@@ -264,6 +341,7 @@ async function generateCenterlineFor(id) {
   fd.append("epsilon", sliders.epsilon.value || mapPointsToEpsilon(sliders.pointAmount.value));
   fd.append("curve", sliders.curveSmooth.value);
   fd.append("stroke", sliders.strokeWidth.value);
+  fd.append("mode", outputMode);
   const res = await fetch(`${API_BASE}/centerline`, { method: "POST", body: fd });
   if (!res.ok) throw new Error(await res.text());
   const svg = await res.text();
@@ -396,6 +474,7 @@ function warmBackend() {
   fd.append("epsilon", sliders.epsilon.value || mapPointsToEpsilon(sliders.pointAmount.value));
   fd.append("curve", sliders.curveSmooth.value);
   fd.append("stroke", sliders.strokeWidth.value);
+  fd.append("mode", outputMode);
   fetch(`${API_BASE}/centerline`, { method: "POST", body: fd }).catch(() => {});
 }
 
