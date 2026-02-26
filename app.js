@@ -55,6 +55,7 @@ const isStaticDemo =
   window.location.hostname.endsWith("github.io") ||
   STATIC_HOSTS.has(window.location.hostname);
 const API_BASE = isStaticDemo ? "https://tracer-backend-ib4x.onrender.com" : "";
+let shapeRunId = 0;
 
 const SUPPORTED_MIME_TYPES = new Set([
   "image/png",
@@ -364,6 +365,22 @@ function renderSelectedToCanvas(id = selectedId) {
   return c;
 }
 
+function buildDetectionCanvas(sourceCanvas, maxDim = 1024) {
+  const w = sourceCanvas.width;
+  const h = sourceCanvas.height;
+  const maxSide = Math.max(w, h);
+  if (maxSide <= maxDim) return { canvas: sourceCanvas, scale: 1 };
+  const scale = maxDim / maxSide;
+  const dw = Math.round(w * scale);
+  const dh = Math.round(h * scale);
+  const c = document.createElement("canvas");
+  c.width = dw;
+  c.height = dh;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(sourceCanvas, 0, 0, dw, dh);
+  return { canvas: c, scale };
+}
+
 function rdp(points, epsilon) {
   if (points.length < 3) return points;
   const [x1, y1] = [points[0].x, points[0].y];
@@ -474,7 +491,9 @@ function buildSvgFromShapes(shapes, size, counts, options, includeHighlight) {
 
 async function detectShapesFromCanvas(canvas, options) {
   const cv = await loadOpenCv();
-  const src = cv.imread(canvas);
+  const { canvas: detectCanvas, scale } = buildDetectionCanvas(canvas, options.maxDim || 1024);
+  const invScale = 1 / scale;
+  const src = cv.imread(detectCanvas);
   const gray = new cv.Mat();
   cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
 
@@ -500,7 +519,7 @@ async function detectShapesFromCanvas(canvas, options) {
   cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
   const shapes = [];
-  const minArea = Math.max(30, (canvas.width * canvas.height) * 0.00005);
+  const minArea = Math.max(30, (detectCanvas.width * detectCanvas.height) * 0.00005);
   const shapeTolerance = options.shapeTolerance;
   const maxAngleDelta = 5 + 25 * shapeTolerance;
   const rectAreaMin = 0.9 - 0.2 * shapeTolerance;
@@ -542,14 +561,14 @@ async function detectShapesFromCanvas(canvas, options) {
           }
           shapes.push({
             type: "rect",
-            area: rectArea,
+            area: rectArea * invScale * invScale,
             data: {
-              x: rect.x,
-              y: rect.y,
-              width: rect.width,
-              height: rect.height,
-              rx,
-              ry,
+              x: Math.round(rect.x * invScale),
+              y: Math.round(rect.y * invScale),
+              width: Math.round(rect.width * invScale),
+              height: Math.round(rect.height * invScale),
+              rx: rx * invScale,
+              ry: ry * invScale,
             },
           });
           classified = true;
@@ -565,20 +584,22 @@ async function detectShapesFromCanvas(canvas, options) {
       const ellipseArea = Math.PI * rx * ry;
       const ratio = ellipseArea > 0 ? area / ellipseArea : 0;
       if (Math.abs(1 - ratio) <= ellipseTol) {
-        const cx = ellipse.center.x;
-        const cy = ellipse.center.y;
+        const cx = ellipse.center.x * invScale;
+        const cy = ellipse.center.y * invScale;
+        const rxScaled = rx * invScale;
+        const ryScaled = ry * invScale;
         const diff = Math.abs(rx - ry) / Math.max(rx, ry);
         if (diff <= 0.05) {
           shapes.push({
             type: "circle",
-            area: ellipseArea,
-            data: { cx: cx.toFixed(2), cy: cy.toFixed(2), r: ((rx + ry) / 2).toFixed(2) },
+            area: ellipseArea * invScale * invScale,
+            data: { cx: cx.toFixed(2), cy: cy.toFixed(2), r: ((rxScaled + ryScaled) / 2).toFixed(2) },
           });
         } else {
           shapes.push({
             type: "ellipse",
-            area: ellipseArea,
-            data: { cx: cx.toFixed(2), cy: cy.toFixed(2), rx: rx.toFixed(2), ry: ry.toFixed(2) },
+            area: ellipseArea * invScale * invScale,
+            data: { cx: cx.toFixed(2), cy: cy.toFixed(2), rx: rxScaled.toFixed(2), ry: ryScaled.toFixed(2) },
           });
         }
         classified = true;
@@ -589,10 +610,12 @@ async function detectShapesFromCanvas(canvas, options) {
       const pts = matToPoints(contour);
       const simplified = rdp(pts, options.pathEpsilon);
       const smoothed = chaikin(simplified, options.curveSmooth);
-      const d = smoothed.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
+      const d = smoothed
+        .map((p, idx) => `${idx === 0 ? "M" : "L"} ${(p.x * invScale).toFixed(2)} ${(p.y * invScale).toFixed(2)}`)
+        .join(" ");
       shapes.push({
         type: "path",
-        area,
+        area: area * invScale * invScale,
         data: { d: `${d} Z` },
       });
     }
@@ -668,6 +691,7 @@ async function generateShapeSvgFor(id) {
     curveSmooth: Number(sliders.curveSmooth.value),
     strokeWidth: Number(sliders.strokeWidth.value),
     isJpeg,
+    maxDim: 1024,
   };
   return await detectShapesFromCanvas(canvas, options);
 }
@@ -685,7 +709,9 @@ async function generateCenterlinePreview() {
     const item = state.get(selectedId);
     if (!item) return;
     if (isShapeDetectionEnabled()) {
+      const runId = ++shapeRunId;
       const result = await generateShapeSvgFor(selectedId);
+      if (runId !== shapeRunId) return;
       if (!result) throw new Error("Shape detection failed");
       item.svg = result.svg;
       item.previewSvg = result.previewSvg;
@@ -868,17 +894,18 @@ async function copySvgToClipboard() {
   let svg = item.svg;
   if (!svg) {
     try {
-      if (isShapeDetectionEnabled()) {
-        const result = await generateShapeSvgFor(selectedId);
-        svg = result?.svg;
-        if (result) {
-          item.svg = result.svg;
-          item.previewSvg = result.previewSvg;
-          item.shapeCounts = result.counts;
-          setPreviewContent(result.previewSvg);
-          updatePreviewBadge(result.counts, !!shapeControls.highlight?.checked);
-        }
-      } else {
+    if (isShapeDetectionEnabled()) {
+      const result = await generateShapeSvgFor(selectedId);
+      svg = result?.svg;
+      if (result) {
+        item.svg = result.svg;
+        item.previewSvg = result.previewSvg;
+        item.shapeCounts = result.counts;
+        setPreviewContent(result.previewSvg);
+        updatePreviewBadge(result.counts, !!shapeControls.highlight?.checked);
+        updatePreviewLegend(!!shapeControls.highlight?.checked);
+      }
+    } else {
         svg = await generateCenterlineFor(selectedId);
       }
       if (svg) item.svg = svg;
