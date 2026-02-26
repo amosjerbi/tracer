@@ -15,19 +15,23 @@ https://amosjerbi.github.io/tracer/
 For full functionality, you need the backend (local or hosted).
 Downloads/tracer-master:
 
-  1. Create and activate a venv, install deps
+1. Create and activate a venv, install deps
+2. 
+```
+cd /Users/amosjerbi/Downloads/tracer-master
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-  cd /Users/amosjerbi/Downloads/tracer-master
-  python3 -m venv .venv
-  . .venv/bin/activate
-  python -m pip install --upgrade pip
-  python -m pip install -r requirements.txt
+2. Start the server
 
-  2. Start the server
+```
+python server.py
+```
 
-  python server.py
-
-  3. Open
+3. Open
 
   http://localhost:8000/index.html
 
