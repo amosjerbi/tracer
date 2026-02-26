@@ -42,6 +42,58 @@
             <input id="whiteThreshold" type="range" min="200" max="255" step="1" value="240" />
           </div>
 
+          <details class="control-group shape-detection" id="shapeDetectionGroup" open>
+            <summary class="control-title-row">
+              <span class="control-title">Shape Detection</span>
+              <span class="caret">▾</span>
+            </summary>
+            <div class="shape-detection-body">
+              <label class="toggle-row">
+                <span>Detect Geometric Shapes</span>
+                <span class="toggle-switch">
+                  <input id="shapeDetectToggle" type="checkbox" />
+                  <span class="toggle-track"></span>
+                </span>
+              </label>
+              <div id="shapeWarning" class="shape-warning" hidden>OpenCV failed to load. Shape detection disabled.</div>
+
+              <div id="shapeOptions" class="shape-options" hidden>
+                <div class="control-subtitle">Shapes to Detect</div>
+                <label class="checkbox-row">
+                  <input id="detectRects" type="checkbox" checked />
+                  <span>Rectangles & Squares</span>
+                </label>
+                <label class="checkbox-row">
+                  <input id="detectEllipses" type="checkbox" checked />
+                  <span>Ellipses & Circles</span>
+                </label>
+
+                <div class="control-subtitle">Detection Confidence</div>
+                <label>Strict <span id="shapeConfidenceVal">70</span> Loose</label>
+                <input id="shapeConfidence" type="range" min="0" max="100" step="1" value="70" />
+
+                <div id="cornerToleranceWrap">
+                  <div class="control-subtitle">Corner Rounding Tolerance</div>
+                  <label><span>0px</span><span id="cornerToleranceVal">4px</span></label>
+                  <input id="cornerTolerance" type="range" min="0" max="20" step="1" value="4" />
+                </div>
+
+                <label class="toggle-row">
+                  <span>Highlight Detected Shapes</span>
+                  <span class="toggle-switch">
+                    <input id="highlightShapes" type="checkbox" checked />
+                    <span class="toggle-track"></span>
+                  </span>
+                </label>
+                <div class="shape-legend">
+                  <span class="legend-item rect">Rect</span>
+                  <span class="legend-item ellipse">Ellipse</span>
+                  <span class="legend-item path">Path</span>
+                </div>
+              </div>
+            </div>
+          </details>
+
           <div class="control-group">
             <div class="control-title">Curve Settings</div>
             <label>Vector Points <span id="pointVal">60</span></label>
