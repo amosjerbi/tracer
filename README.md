@@ -28,6 +28,10 @@ python -m pip install -r requirements.txt
 2. Start the server
 
 ```
+. .venv/bin/activate && python server.py
+```
+
+```
 python server.py
 ```
 
