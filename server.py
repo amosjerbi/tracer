@@ -79,6 +79,11 @@ class Handler(SimpleHTTPRequestHandler):
             stroke = stroke.get_content()
         else:
             stroke = "15"
+        shapes = parts.get("shapes")
+        if shapes:
+            shapes = str(shapes.get_content()).strip().lower()
+        else:
+            shapes = "0"
         mode = parts.get("mode")
         if mode:
             mode = str(mode.get_content()).strip().lower()
@@ -100,6 +105,7 @@ class Handler(SimpleHTTPRequestHandler):
             stroke = str(float(stroke))
         except Exception:
             stroke = "15.0"
+        include_shapes = shapes in {"1", "true", "yes", "on"}
         if mode not in {"centerline", "circle"}:
             mode = "centerline"
 
@@ -123,7 +129,7 @@ class Handler(SimpleHTTPRequestHandler):
             with open(in_path, "wb") as f:
                 f.write(file_part.get_payload(decode=True))
 
-            cmd = [sys.executable, str(CENTERLINE), str(in_path), "-preview", threshold, epsilon, curve, stroke, mode]
+            cmd = [sys.executable, str(CENTERLINE), str(in_path), "-preview", threshold, epsilon, curve, stroke, mode, "1" if include_shapes else "0"]
             proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
             if proc.returncode != 0:
                 self.send_error(500, proc.stderr or "Centerline failed")

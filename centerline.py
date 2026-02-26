@@ -5,7 +5,7 @@ import math
 import numpy as np
 from PIL import Image
 from skimage.morphology import skeletonize, binary_erosion
-from skimage.measure import label
+from skimage.measure import label, find_contours
 from skan.csr import skeleton_to_csgraph
 import svgwrite
 import cairosvg
@@ -49,6 +49,11 @@ if len(sys.argv) > 7:
     MODE = str(sys.argv[7]).strip().lower()
     if MODE not in {"centerline", "circle"}:
         MODE = "centerline"
+
+INCLUDE_SHAPES = False
+if len(sys.argv) > 8:
+    val = str(sys.argv[8]).strip().lower()
+    INCLUDE_SHAPES = val in {"1", "true", "yes", "on"}
 
 # Load input and convert to RGBA image + size/viewBox
 if src.suffix.lower() in [".png", ".jpg", ".jpeg"]:
@@ -337,8 +342,62 @@ def write_circle_svg():
     return True
 
 
-if MODE == "circle" and write_circle_svg():
-    sys.exit(0)
+def add_shapes_layer(dwg, labels):
+    for i in range(1, labels.max() + 1):
+        mask = labels == i
+        circle = fit_circle_from_mask(mask)
+        if circle:
+            cx, cy, r = circle
+            dwg.add(dwg.circle(
+                center=(cx, cy),
+                r=r,
+                fill="#e5e7eb",
+                stroke="none",
+                opacity=0.6,
+            ))
+            continue
+        rect = fit_rect_from_mask(mask)
+        if rect:
+            x, y, rw, rh = rect
+            dwg.add(dwg.rect(
+                insert=(x, y),
+                size=(rw, rh),
+                fill="#e5e7eb",
+                stroke="none",
+                opacity=0.6,
+            ))
+            continue
+        contours = find_contours(mask.astype(float), 0.5)
+        if not contours:
+            continue
+        contour = max(contours, key=len)
+        points = [(p[1], p[0]) for p in contour]
+        points = rdp(points, max(1.0, RDP_EPSILON * 0.5))
+        if len(points) < 2:
+            continue
+        d = "M " + " L ".join(f"{x:.3f},{y:.3f}" for x, y in points) + " Z"
+        dwg.add(dwg.path(
+            d=d,
+            fill="#e5e7eb",
+            stroke="none",
+            opacity=0.6,
+        ))
+
+
+if MODE == "circle":
+    if INCLUDE_SHAPES:
+        labels = label(bw, connectivity=2)
+        out = src.with_name(f"{src.stem}{OUT_SUFFIX}.svg")
+        dwg = svgwrite.Drawing(str(out), size=(w, h), viewBox=viewBox)
+        if labels.max() > 0:
+            add_shapes_layer(dwg, labels)
+        skel = skeletonize(bw > 0)
+        add_skeleton_paths(dwg, skel)
+        dwg.save()
+        print(out)
+        sys.exit(0)
+    if write_circle_svg():
+        sys.exit(0)
 
 # Skeletonize (boolean)
 skel = skeletonize(bw > 0)
@@ -346,6 +405,10 @@ skel = skeletonize(bw > 0)
 # Write SVG with centerlines
 out = src.with_name(f"{src.stem}{OUT_SUFFIX}.svg")
 dwg = svgwrite.Drawing(str(out), size=(w, h), viewBox=viewBox)
+if INCLUDE_SHAPES:
+    labels = label(bw, connectivity=2)
+    if labels.max() > 0:
+        add_shapes_layer(dwg, labels)
 add_skeleton_paths(dwg, skel)
 dwg.save()
 print(out)

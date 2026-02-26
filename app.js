@@ -20,6 +20,7 @@ const readouts = {
 };
 
 const presetSelect = document.getElementById("presetSelect");
+const includeShapes = document.getElementById("includeShapes");
 
 const resetBtn = document.getElementById("resetBtn");
 const deleteBtn = document.getElementById("deleteBtn");
@@ -101,7 +102,7 @@ const PRESETS = {
   },
 };
 
-let outputMode = PRESETS.balanced.mode;
+let outputMode = PRESETS.clean.mode;
 
 function isSupportedFile(file) {
   if (!file) return false;
@@ -286,6 +287,13 @@ if (presetSelect) {
   });
 }
 
+if (includeShapes) {
+  includeShapes.addEventListener("change", () => {
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(generateCenterlinePreview, 100);
+  });
+}
+
 if (resetBtn) {
   resetBtn.addEventListener("click", () => {
     const item = state.get(selectedId);
@@ -342,6 +350,7 @@ async function generateCenterlineFor(id) {
   fd.append("curve", sliders.curveSmooth.value);
   fd.append("stroke", sliders.strokeWidth.value);
   fd.append("mode", outputMode);
+  fd.append("shapes", includeShapes && includeShapes.checked ? "1" : "0");
   const res = await fetch(`${API_BASE}/centerline`, { method: "POST", body: fd });
   if (!res.ok) throw new Error(await res.text());
   const svg = await res.text();
@@ -475,6 +484,7 @@ function warmBackend() {
   fd.append("curve", sliders.curveSmooth.value);
   fd.append("stroke", sliders.strokeWidth.value);
   fd.append("mode", outputMode);
+  fd.append("shapes", includeShapes && includeShapes.checked ? "1" : "0");
   fetch(`${API_BASE}/centerline`, { method: "POST", body: fd }).catch(() => {});
 }
 
@@ -525,5 +535,8 @@ if (copyBtn) {
 
 
 window.addEventListener("load", () => {
+  if (presetSelect) {
+    applyPreset(presetSelect.value);
+  }
   warmBackend();
 });

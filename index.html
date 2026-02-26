@@ -40,13 +40,17 @@
             <div class="control-title">Presets</div>
             <label for="presetSelect">Mode</label>
             <select id="presetSelect" class="select-input">
-              <option value="balanced" selected>Balanced (Default)</option>
+              <option value="balanced">Balanced (Default)</option>
               <option value="accurate">Accurate (More Points)</option>
               <option value="smooth">Smooth (Cleaner Curves)</option>
-              <option value="clean">Clean (Max Smooth)</option>
+              <option value="clean" selected>Clean (Max Smooth)</option>
               <option value="bold">Bold (Thicker Stroke)</option>
               <option value="circle">Perfect Circle (Fit)</option>
             </select>
+            <label class="toggle">
+              <input id="includeShapes" type="checkbox" />
+              Add shapes behind lines
+            </label>
           </div>
 
           <div class="control-group">
