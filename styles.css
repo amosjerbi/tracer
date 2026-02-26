@@ -138,12 +138,87 @@ input[type="range"] { width: 100%; margin: 6px 0 12px; }
 .select-input {
   width: 100%;
   padding: 10px 12px;
+  padding-right: 56px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #fff;
   color: var(--ink);
   font-size: 13px;
   margin-top: 6px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%232b2f3a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px center;
+}
+
+.select {
+  position: relative;
+  margin-top: 6px;
+}
+
+.select-trigger {
+  width: 100%;
+  padding: 10px 12px;
+  padding-right: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.select-chevron {
+  width: 14px;
+  height: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8' viewBox='0 0 14 8'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%232b2f3a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: transform 0.2s ease;
+}
+
+.select.open .select-chevron {
+  transform: rotate(180deg);
+}
+
+.select-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  display: none;
+  z-index: 5;
+}
+
+.select.open .select-menu {
+  display: block;
+}
+
+.select-option {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.select-option:hover,
+.select-option[data-selected="true"] {
+  background: #e6ecfc;
 }
 .file-input {
   position: absolute;
@@ -156,12 +231,64 @@ input[type="range"] { width: 100%; margin: 6px 0 12px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .mobile-upload-row { display: none; }
 
-.toggle {
+.toggle-row {
+  margin-top: 10px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
   color: var(--muted);
+}
+
+.toggle-label {
+  color: var(--muted);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #e6eaf2;
+  border: 1px solid #d5dbe6;
+  border-radius: 999px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.toggle-track::after {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(20, 30, 60, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.toggle-switch input:checked + .toggle-track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-track::after {
+  transform: translate(20px, -50%);
 }
 
 .preview {

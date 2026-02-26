@@ -20,6 +20,9 @@ const readouts = {
 };
 
 const presetSelect = document.getElementById("presetSelect");
+const presetSelectWrap = presetSelect ? presetSelect.closest(".select") : null;
+const presetValue = presetSelectWrap ? presetSelectWrap.querySelector(".select-value") : null;
+const presetMenu = presetSelectWrap ? presetSelectWrap.querySelector(".select-menu") : null;
 const includeShapes = document.getElementById("includeShapes");
 
 const resetBtn = document.getElementById("resetBtn");
@@ -282,10 +285,38 @@ Object.entries(sliders).forEach(([key, input]) => {
 });
 
 if (presetSelect) {
-  presetSelect.addEventListener("change", () => {
-    applyPreset(presetSelect.value);
+  presetSelect.addEventListener("click", () => {
+    if (!presetSelectWrap) return;
+    const isOpen = presetSelectWrap.classList.toggle("open");
+    presetSelect.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
+  if (presetMenu) {
+    presetMenu.addEventListener("click", (e) => {
+      const option = e.target.closest(".select-option");
+      if (!option) return;
+      const value = option.dataset.value;
+      presetMenu.querySelectorAll(".select-option").forEach((btn) => {
+        btn.dataset.selected = btn === option ? "true" : "false";
+      });
+      if (presetValue) {
+        presetValue.textContent = option.textContent;
+      }
+      if (presetSelectWrap) {
+        presetSelectWrap.classList.remove("open");
+        presetSelect.setAttribute("aria-expanded", "false");
+      }
+      applyPreset(value);
+    });
+  }
 }
+
+window.addEventListener("click", (e) => {
+  if (!presetSelectWrap) return;
+  if (!presetSelectWrap.contains(e.target)) {
+    presetSelectWrap.classList.remove("open");
+    presetSelect.setAttribute("aria-expanded", "false");
+  }
+});
 
 if (includeShapes) {
   includeShapes.addEventListener("change", () => {
@@ -535,8 +566,12 @@ if (copyBtn) {
 
 
 window.addEventListener("load", () => {
-  if (presetSelect) {
-    applyPreset(presetSelect.value);
+  if (presetMenu) {
+    const selected = presetMenu.querySelector(".select-option[data-selected=\"true\"]");
+    if (selected) {
+      if (presetValue) presetValue.textContent = selected.textContent;
+      applyPreset(selected.dataset.value);
+    }
   }
   warmBackend();
 });

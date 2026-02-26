@@ -38,19 +38,27 @@
 
           <div class="control-group">
             <div class="control-title">Presets</div>
-            <label for="presetSelect">Mode</label>
-            <select id="presetSelect" class="select-input">
-              <option value="balanced">Balanced (Default)</option>
-              <option value="accurate">Accurate (More Points)</option>
-              <option value="smooth">Smooth (Cleaner Curves)</option>
-              <option value="clean" selected>Clean (Max Smooth)</option>
-              <option value="bold">Bold (Thicker Stroke)</option>
-              <option value="circle">Perfect Circle (Fit)</option>
-            </select>
-            <label class="toggle">
-              <input id="includeShapes" type="checkbox" />
-              Add shapes behind lines
-            </label>
+            <div class="select">
+              <button id="presetSelect" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select-value">Clean (Max Smooth)</span>
+                <span class="select-chevron" aria-hidden="true"></span>
+              </button>
+              <div class="select-menu" role="listbox" aria-label="Presets">
+                <button class="select-option" role="option" data-value="balanced">Balanced (Default)</button>
+                <button class="select-option" role="option" data-value="accurate">Accurate (More Points)</button>
+                <button class="select-option" role="option" data-value="smooth">Smooth (Cleaner Curves)</button>
+                <button class="select-option" role="option" data-value="clean" data-selected="true">Clean (Max Smooth)</button>
+                <button class="select-option" role="option" data-value="bold">Bold (Thicker Stroke)</button>
+                <button class="select-option" role="option" data-value="circle">Perfect Circle (Fit)</button>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">Add shapes behind lines</div>
+              <label class="toggle-switch">
+                <input id="includeShapes" type="checkbox" />
+                <span class="toggle-track"></span>
+              </label>
+            </div>
           </div>
 
           <div class="control-group">
