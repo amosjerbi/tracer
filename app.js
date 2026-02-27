@@ -49,6 +49,8 @@ const isStaticDemo =
   STATIC_HOSTS.has(window.location.hostname);
 const API_BASE = isStaticDemo ? "https://tracer-backend-ib4x.onrender.com" : "";
 
+const MAX_PREVIEW_DIM = 2000;
+
 const SUPPORTED_MIME_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -56,6 +58,13 @@ const SUPPORTED_MIME_TYPES = new Set([
   "image/svg+xml",
 ]);
 const SUPPORTED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".svg"]);
+
+function isSvgFile(file) {
+  if (!file) return false;
+  if (file.type === "image/svg+xml") return true;
+  const name = file.name || "";
+  return name.toLowerCase().endsWith(".svg");
+}
 
 const PRESETS = {
   balanced: {
@@ -377,13 +386,15 @@ async function renderSelectedToBlob(id = selectedId) {
   const img = item.el;
   const w = img.naturalWidth;
   const h = img.naturalHeight;
-  const cw = w;
-  const ch = h;
+  if (!w || !h) return null;
+  const scale = Math.min(1, MAX_PREVIEW_DIM / Math.max(w, h));
+  const cw = Math.max(1, Math.round(w * scale));
+  const ch = Math.max(1, Math.round(h * scale));
   const c = document.createElement("canvas");
   c.width = cw;
   c.height = ch;
   const ctx = c.getContext("2d");
-  ctx.drawImage(img, 0, 0, w, h);
+  ctx.drawImage(img, 0, 0, cw, ch);
 
   return await new Promise((resolve) => c.toBlob(resolve, "image/png"));
 }
@@ -391,7 +402,12 @@ async function renderSelectedToBlob(id = selectedId) {
 async function generateCenterlineFor(id) {
   const item = state.get(id);
   if (!item) return;
-  const uploadBlob = item.file || await renderSelectedToBlob(id);
+  let uploadBlob = null;
+  if (item.file && isSvgFile(item.file)) {
+    uploadBlob = item.file;
+  } else {
+    uploadBlob = await renderSelectedToBlob(id);
+  }
   if (!uploadBlob) return;
   const fd = new FormData();
   if (uploadBlob instanceof File) {
@@ -444,7 +460,7 @@ async function generateCenterlinePreview() {
       preview.textContent = "Preview needs the local Python server (POST not allowed on GitHub Pages).";
     } else {
       preview.classList.remove("pending");
-    preview.textContent = "Preview failed.";
+      preview.textContent = "Preview failed. Try a smaller PNG/JPG or SVG.";
     }
     setPillDisabled(copyBtn, true);
     console.error(err);
