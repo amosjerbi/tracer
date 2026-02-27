@@ -100,7 +100,7 @@ const PRESETS = {
   },
 };
 
-let outputMode = PRESETS.clean.mode;
+let outputMode = PRESETS.balanced.mode;
 
 function isSupportedFile(file) {
   if (!file) return false;
