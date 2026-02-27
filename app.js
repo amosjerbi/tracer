@@ -127,6 +127,18 @@ function setPillDisabled(el, disabled) {
   el.setAttribute("aria-disabled", disabled ? "true" : "false");
 }
 
+function startPreviewStopwatch(label = "Generating centerline") {
+  const start = performance.now();
+  preview.textContent = `${label}... 0.0s`;
+  const timer = setInterval(() => {
+    const elapsed = (performance.now() - start) / 1000;
+    preview.textContent = `${label}... ${elapsed.toFixed(1)}s`;
+  }, 100);
+  return () => {
+    clearInterval(timer);
+  };
+}
+
 function setSelected(id) {
   selectedId = id;
   document.querySelectorAll(".draggable").forEach((el) => {
@@ -440,11 +452,12 @@ async function generateCenterlinePreview() {
     setPillDisabled(copyBtn, true);
     return;
   }
-  preview.textContent = "Generating centerline...";
+  const stopTimer = startPreviewStopwatch("Generating centerline");
   try {
     const svg = await generateCenterlineFor(selectedId);
     const item = state.get(selectedId);
     preview.classList.remove("pending");
+    stopTimer();
     setPreviewContent(svg);
     const blob = new Blob([svg], { type: "image/svg+xml" });
     const url = URL.createObjectURL(blob);
@@ -455,6 +468,7 @@ async function generateCenterlinePreview() {
     setPillDisabled(downloadLink, false);
     setPillDisabled(copyBtn, false);
   } catch (err) {
+    stopTimer();
     if (String(err).includes("405")) {
       preview.classList.remove("pending");
       preview.textContent = "Preview needs the local Python server (POST not allowed on GitHub Pages).";

@@ -597,7 +597,6 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 980px) {
   .main { padding: 20px; }
   .workspace { grid-template-columns: 1fr; }
-  .mobile-upload-row { display: flex; }
   .dropzone { min-height: clamp(280px, 35vh, 520px); }
   .preview-in-canvas { inset: 12px; }
 }
