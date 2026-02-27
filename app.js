@@ -24,6 +24,9 @@ const presetSelectWrap = presetSelect ? presetSelect.closest(".select") : null;
 const presetValue = presetSelectWrap ? presetSelectWrap.querySelector(".select-value") : null;
 const presetMenu = presetSelectWrap ? presetSelectWrap.querySelector(".select-menu") : null;
 const includeShapes = document.getElementById("includeShapes");
+const overlayOriginal = document.getElementById("overlayOriginal");
+const overlayOpacity = document.getElementById("overlayOpacity");
+const strokeColor = document.getElementById("strokeColor");
 
 const resetBtn = document.getElementById("resetBtn");
 const deleteBtn = document.getElementById("deleteBtn");
@@ -56,19 +59,11 @@ const SUPPORTED_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".svg"]);
 
 const PRESETS = {
   balanced: {
-    threshold: 240,
-    pointAmount: 60,
-    epsilon: 6,
-    curveSmooth: 2,
+    threshold: 231,
+    pointAmount: 23,
+    epsilon: 8.5,
+    curveSmooth: 0,
     strokeWidth: 15,
-    mode: "centerline",
-  },
-  accurate: {
-    threshold: 245,
-    pointAmount: 95,
-    epsilon: 2.5,
-    curveSmooth: 1,
-    strokeWidth: 10,
     mode: "centerline",
   },
   smooth: {
@@ -81,9 +76,9 @@ const PRESETS = {
   },
   clean: {
     threshold: 231,
-    pointAmount: 39,
-    epsilon: 7,
-    curveSmooth: 2,
+    pointAmount: 100,
+    epsilon: 1,
+    curveSmooth: 11,
     strokeWidth: 15,
     mode: "centerline",
   },
@@ -161,6 +156,16 @@ function updateReadouts() {
   readouts.epsilonVal.textContent = sliders.epsilon.value;
   readouts.curveVal.textContent = sliders.curveSmooth.value;
   readouts.strokeVal.textContent = sliders.strokeWidth.value;
+  Object.values(sliders).forEach((input) => updateRangeFill(input));
+}
+
+function updateRangeFill(input) {
+  if (!input) return;
+  const min = Number(input.min || 0);
+  const max = Number(input.max || 100);
+  const val = Number(input.value || 0);
+  const pct = max === min ? 0 : ((val - min) / (max - min)) * 100;
+  input.style.background = `linear-gradient(90deg, var(--accent) ${pct}%, #fff ${pct}%)`;
 }
 
 function applyPreset(name) {
@@ -325,6 +330,24 @@ if (includeShapes) {
   });
 }
 
+if (overlayOriginal) {
+  overlayOriginal.addEventListener("change", () => {
+    updateOverlay();
+  });
+}
+
+if (overlayOpacity) {
+  overlayOpacity.addEventListener("change", () => {
+    updateOverlay();
+  });
+}
+
+if (strokeColor) {
+  strokeColor.addEventListener("input", () => {
+    updateStrokeColor();
+  });
+}
+
 if (resetBtn) {
   resetBtn.addEventListener("click", () => {
     const item = state.get(selectedId);
@@ -430,6 +453,24 @@ async function generateCenterlinePreview() {
 
 
 
+function getSvgSize(svgEl) {
+  if (!svgEl) return null;
+  const widthAttr = svgEl.getAttribute("width");
+  const heightAttr = svgEl.getAttribute("height");
+  const width = widthAttr ? Number.parseFloat(widthAttr) : NaN;
+  const height = heightAttr ? Number.parseFloat(heightAttr) : NaN;
+  if (!Number.isNaN(width) && !Number.isNaN(height)) {
+    return { width, height };
+  }
+  const viewBox = svgEl.getAttribute("viewBox");
+  if (!viewBox) return null;
+  const parts = viewBox.split(/\s+/).map((v) => Number.parseFloat(v));
+  if (parts.length === 4 && parts.every((v) => Number.isFinite(v))) {
+    return { width: parts[2], height: parts[3] };
+  }
+  return null;
+}
+
 function setPreviewContent(svgText) {
   preview.innerHTML = "";
   preview.style.display = "grid";
@@ -438,6 +479,21 @@ function setPreviewContent(svgText) {
   const content = document.createElement("div");
   content.className = "preview-content";
   content.innerHTML = svgText;
+  const svgEl = content.querySelector("svg");
+  if (svgEl) {
+    const stack = document.createElement("div");
+    stack.className = "preview-stack";
+    const size = getSvgSize(svgEl);
+    if (size) {
+      stack.style.width = `${size.width}px`;
+      stack.style.height = `${size.height}px`;
+    }
+    svgEl.remove();
+    stack.appendChild(svgEl);
+    content.appendChild(stack);
+    updateOverlay(stack);
+    updateStrokeColor();
+  }
   viewport.appendChild(content);
   preview.appendChild(viewport);
   viewScale = 1;
@@ -478,6 +534,33 @@ function applyPreviewTransform() {
   const content = preview.querySelector(".preview-content");
   if (!content) return;
   content.style.transform = `translate(${viewX}px, ${viewY}px) scale(${viewScale}) translate(-50%, -50%)`;
+}
+
+function updateOverlay(stackEl = preview.querySelector(".preview-stack")) {
+  if (!stackEl) return;
+  const item = state.get(selectedId);
+  const shouldShow = overlayOriginal && overlayOriginal.checked && item && item.src;
+  let overlay = stackEl.querySelector(".preview-overlay");
+  if (!shouldShow) {
+    if (overlay) overlay.remove();
+    return;
+  }
+  if (!overlay) {
+    overlay = document.createElement("img");
+    overlay.className = "preview-overlay";
+    overlay.alt = "";
+    stackEl.appendChild(overlay);
+  }
+  overlay.src = item.src;
+  if (overlayOpacity) {
+    overlay.style.opacity = Math.max(0, Math.min(1, Number(overlayOpacity.value) / 100));
+  }
+}
+
+function updateStrokeColor() {
+  const stackEl = preview.querySelector(".preview-stack");
+  if (!stackEl || !strokeColor) return;
+  stackEl.style.setProperty("--stroke-color", strokeColor.value || "#000000");
 }
 
 

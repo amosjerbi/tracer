@@ -43,9 +43,11 @@ python -m pip install -r requirements.txt
 
 ## Features
 
-- Drag & drop a PNG → auto‑generates centerline preview
+- Drag & drop PNG/JPG/SVG → auto‑generates centerline preview
 - Adjustable **white threshold**, **vector points**, **epsilon**, **curve smoothing**, and **stroke width**
-- Presets including **Perfect Circle (Fit)** (fits circles/rects where applicable)
+- Presets: **Clean**, **Angular**, **Smooth**, **Bold**, **Perfect Circle (Fit)**
+- Toggle **Add shapes behind lines** for circle/rect fills where detected
+- Overlay original image (opacity dropdown) and change preview stroke color
 - Download SVG after generation
 - Pan/zoom the preview (drag to pan, `+`/`-` to zoom)
 

@@ -4,7 +4,7 @@ import sys
 import math
 import numpy as np
 from PIL import Image
-from skimage.morphology import skeletonize, binary_erosion
+from skimage.morphology import skeletonize, binary_erosion, binary_closing, square
 from skimage.measure import label, find_contours
 from skan.csr import skeleton_to_csgraph
 import svgwrite
@@ -82,6 +82,9 @@ alpha = arr[:, :, 3]
 bw = (alpha > 0)
 
 MAX_POINTS_PER_PATH = 500  # split long paths to avoid single giant stroke
+MERGE_ENDPOINT_TOL = 3.0
+MERGE_DEDUPE_TOL = 0.5
+GAP_CLOSE_RADIUS = 1  # pixels; small closing helps bridge tiny gaps
 
 
 def normalize_coords(coords):
@@ -92,6 +95,13 @@ def normalize_coords(coords):
     if coords.ndim != 2 or coords.shape[1] != 2:
         raise RuntimeError(f"Unexpected coords shape: {coords.shape}")
     return coords
+
+
+def prepare_mask_for_skeleton(mask):
+    if GAP_CLOSE_RADIUS <= 0:
+        return mask
+    k = GAP_CLOSE_RADIUS * 2 + 1
+    return binary_closing(mask, square(k))
 
 
 def rdp(points, epsilon):
@@ -134,6 +144,113 @@ def chaikin(points, iterations=2):
         new_pts.append(points[-1])
         points = new_pts
     return points
+
+
+def _dedupe_points(points, tol=0.5):
+    if not points:
+        return points
+    tol2 = tol * tol
+    out = [points[0]]
+    for p in points[1:]:
+        dx = p[0] - out[-1][0]
+        dy = p[1] - out[-1][1]
+        if dx * dx + dy * dy < tol2:
+            continue
+        out.append(p)
+    return out
+
+
+def _merge_path_segments(segments, endpoint_tol=2.0, dedupe_tol=0.5):
+    clean_segments = [s for s in segments if len(s) >= 2]
+    if not clean_segments:
+        return []
+
+    nodes = []
+    cell_map = {}
+    tol2 = endpoint_tol * endpoint_tol
+
+    def cell_key(pt):
+        return (int(pt[0] // endpoint_tol), int(pt[1] // endpoint_tol))
+
+    def find_or_create_node(pt):
+        if endpoint_tol <= 0:
+            nodes.append(pt)
+            return len(nodes) - 1
+        key = cell_key(pt)
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                bucket = cell_map.get((key[0] + dx, key[1] + dy))
+                if not bucket:
+                    continue
+                for idx in bucket:
+                    n = nodes[idx]
+                    dxn = pt[0] - n[0]
+                    dyn = pt[1] - n[1]
+                    if dxn * dxn + dyn * dyn <= tol2:
+                        return idx
+        idx = len(nodes)
+        nodes.append(pt)
+        cell_map.setdefault(key, []).append(idx)
+        return idx
+
+    edges = []
+    node_edges = {}
+    for seg in clean_segments:
+        a = find_or_create_node(seg[0])
+        b = find_or_create_node(seg[-1])
+        idx = len(edges)
+        edges.append({"a": a, "b": b, "points": seg})
+        node_edges.setdefault(a, []).append((idx, 0))
+        node_edges.setdefault(b, []).append((idx, 1))
+
+    degrees = {n: len(node_edges.get(n, [])) for n in range(len(nodes))}
+    visited = [False] * len(edges)
+    merged = []
+
+    def build_chain(edge_idx, start_node):
+        edge = edges[edge_idx]
+        if start_node == edge["a"]:
+            chain = list(edge["points"])
+            cur_node = edge["b"]
+        else:
+            chain = list(reversed(edge["points"]))
+            cur_node = edge["a"]
+        visited[edge_idx] = True
+        while True:
+            next_edge = None
+            for ei, end in node_edges.get(cur_node, []):
+                if visited[ei]:
+                    continue
+                next_edge = (ei, end)
+                break
+            if next_edge is None:
+                break
+            ei, end = next_edge
+            e = edges[ei]
+            if end == 0:
+                seg_pts = e["points"]
+                next_node = e["b"]
+            else:
+                seg_pts = list(reversed(e["points"]))
+                next_node = e["a"]
+            visited[ei] = True
+            chain.extend(seg_pts[1:])
+            cur_node = next_node
+        return _dedupe_points(chain, tol=dedupe_tol)
+
+    deg1_nodes = [n for n, d in degrees.items() if d == 1]
+    for n in deg1_nodes:
+        for edge_idx, _ in node_edges.get(n, []):
+            if visited[edge_idx]:
+                continue
+            merged.append(build_chain(edge_idx, n))
+
+    for edge_idx in range(len(edges)):
+        if visited[edge_idx]:
+            continue
+        merged.append(build_chain(edge_idx, edges[edge_idx]["a"]))
+
+    return merged
 
 
 def add_skeleton_paths(dwg, skel_mask):
@@ -201,6 +318,7 @@ def add_skeleton_paths(dwg, skel_mask):
                         break
                 paths.append(path)
 
+    segments = []
     for path in paths:
         if len(path) < 2:
             continue
@@ -211,21 +329,30 @@ def add_skeleton_paths(dwg, skel_mask):
             )
         coords_path = coords[idx]
         points = [(c, r) for r, c in coords_path]
+        segments.append(points)
+
+    merged_chains = _merge_path_segments(
+        segments,
+        endpoint_tol=MERGE_ENDPOINT_TOL,
+        dedupe_tol=MERGE_DEDUPE_TOL,
+    )
+    for points in merged_chains:
+        if len(points) < 2:
+            continue
         points = rdp(points, RDP_EPSILON)
         points = chaikin(points, CHAIKIN_ITERS)
-        for start in range(0, len(points) - 1, MAX_POINTS_PER_PATH):
-            chunk_pts = points[start:start + MAX_POINTS_PER_PATH]
-            if len(chunk_pts) < 2:
-                continue
-            d = "M " + " L ".join(f"{x:.3f},{y:.3f}" for x, y in chunk_pts)
-            dwg.add(dwg.path(
-                d=d,
-                fill="none",
-                stroke="black",
-                stroke_width=STROKE_WIDTH,
-                stroke_linecap="round",
-                stroke_linejoin="round",
-            ))
+        points = _dedupe_points(points, tol=MERGE_DEDUPE_TOL)
+        if len(points) < 2:
+            continue
+        d = "M " + " L ".join(f"{x:.3f},{y:.3f}" for x, y in points)
+        dwg.add(dwg.path(
+            d=d,
+            fill="none",
+            stroke="black",
+            stroke_width=STROKE_WIDTH,
+            stroke_linecap="round",
+            stroke_linejoin="round",
+        ))
 
 
 def fit_circle_from_mask(mask):
@@ -335,7 +462,7 @@ def write_circle_svg():
                     stroke_linejoin="round",
                 ))
             else:
-                skel = skeletonize(mask)
+                skel = skeletonize(prepare_mask_for_skeleton(mask))
                 add_skeleton_paths(dwg, skel)
     dwg.save()
     print(out)
@@ -391,7 +518,7 @@ if MODE == "circle":
         dwg = svgwrite.Drawing(str(out), size=(w, h), viewBox=viewBox)
         if labels.max() > 0:
             add_shapes_layer(dwg, labels)
-        skel = skeletonize(bw > 0)
+        skel = skeletonize(prepare_mask_for_skeleton(bw > 0))
         add_skeleton_paths(dwg, skel)
         dwg.save()
         print(out)
@@ -400,7 +527,7 @@ if MODE == "circle":
         sys.exit(0)
 
 # Skeletonize (boolean)
-skel = skeletonize(bw > 0)
+skel = skeletonize(prepare_mask_for_skeleton(bw > 0))
 
 # Write SVG with centerlines
 out = src.with_name(f"{src.stem}{OUT_SUFFIX}.svg")

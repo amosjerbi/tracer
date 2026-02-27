@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SVG Tracer</title>
-  <link rel="stylesheet" href="styles.css?v=9f7b2de" />
+  <link rel="stylesheet" href="styles.css?v=1c2f9d6" />
   <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
-  <script defer src="app.js?v=5d46176"></script>
+  <script defer src="app.js?v=9b7c3a3"></script>
 </head>
 <body>
   <div class="app">
@@ -15,9 +15,9 @@
         <div class="dropzone card" id="canvas">
           <div class="drop-hint">
             <div class="drop-icon"><i class="ph ph-file-image"></i></div>
-            <div>Drag & Drop / Paste / Click to Upload a PNG, JPG, or SVG</div>
+            <div>Drop PNG, JPG, SVG or add image</div>
             <div class="row">
-              <label for="fileInput" class="pill small">
+              <label for="fileInput" class="pill add-image">
                 Add Image
               </label>
             </div>
@@ -32,7 +32,7 @@
           </div>
 
           <div class="mobile-upload-row">
-            <label for="fileInput" class="pill">Add Image</label>
+            <label for="fileInput" class="pill add-image">Add Image</label>
           </div>
 
           <div class="control-section">
@@ -45,8 +45,7 @@
                 </button>
                 <div class="select-menu" role="listbox" aria-label="Presets">
                 <button class="select-option" role="option" data-value="clean" data-selected="true">Clean (Default)</button>
-                <button class="select-option" role="option" data-value="balanced">Balanced</button>
-                <button class="select-option" role="option" data-value="accurate">Accurate More Points</button>
+                <button class="select-option" role="option" data-value="balanced">Angular</button>
                 <button class="select-option" role="option" data-value="smooth">Smooth Cleaner Curves</button>
                 <button class="select-option" role="option" data-value="bold">Bold Thicker Stroke</button>
                 <button class="select-option" role="option" data-value="circle">Perfect Circle Fit</button>
@@ -58,6 +57,25 @@
                   <input id="includeShapes" type="checkbox" />
                   <span class="toggle-track"></span>
                 </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-label">Overlay original image</div>
+                <label class="toggle-switch">
+                  <input id="overlayOriginal" type="checkbox" />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+              <div class="overlay-row">
+                <div class="overlay-inline">
+                  <span class="overlay-label">Opacity</span>
+                  <input id="strokeColor" type="color" value="#000000" />
+                  <select id="overlayOpacity" class="select-input">
+                    <option value="25">25%</option>
+                    <option value="50">50%</option>
+                    <option value="75">75%</option>
+                    <option value="100">100%</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -92,6 +110,14 @@
                 <button id="copyBtn" class="pill disabled" type="button" aria-disabled="true">Copy SVG</button>
               </div>
             </div>
+          </div>
+
+          <div class="panel-footer">
+            <a class="footer-name" href="https://ajerbi.com" target="_blank" rel="noreferrer">Made by Amos Jerbi</a>
+            <a class="footer-link" href="https://github.com/amosjerbi/tracer" target="_blank" rel="noreferrer">
+              <i class="ph ph-github-logo" aria-hidden="true"></i>
+              <span class="sr-only">GitHub repository</span>
+            </a>
           </div>
         </aside>
       </section>
