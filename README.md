@@ -13,32 +13,23 @@ https://amosjerbi.github.io/tracer/
 
 For full functionality, you need the backend (local or hosted).
 
-1. Create and activate a venv, install deps
+1.This will create a venv folder with all dependencies within it
 ```
-cd /Users/amosjerbi/Documents/tracer
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+cd /Users/amosjerbi/Desktop/tracer
+python3 -m venv venv
+source venv/bin/activate
+pip install numpy pillow scikit-image opencv-python-headless svgwrite cairosvg skan
 ```
 
 2. Start the server
 
 ```
-. .venv/bin/activate && python server.py
+python3 server.py
 ```
 
 3. Open
 
   http://localhost:8000/index.html
-
-  If install fails on cairosvg, you likely need system libs (macOS):
-
-  brew install cairo pango gdk-pixbuf libffi
-
-  If you want me to run anything for you, say which Python you want to use
-  (system, Homebrew, or an existing venv) and whether I should set it up
-  in .venv.
 
 
 ## Features
@@ -74,28 +65,6 @@ const API_BASE = "https://YOUR-RENDER-URL";
 ```
 
 Commit + push, and GitHub Pages will now use the hosted backend.
-
-## Requirements (Backend)
-
-- `numpy`
-- `pillow`
-- `scikit-image`
-- `opencv-python-headless`
-- `svgwrite`
-- `cairosvg`
-- `skan`
-
-Install locally (explicit packages):
-
-```bash
-python -m pip install numpy pillow scikit-image opencv-python-headless svgwrite cairosvg skan
-```
-
-Install locally (requirements file):
-
-```bash
-python -m pip install -r requirements.txt
-```
 
 ## How It Works
 
