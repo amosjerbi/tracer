@@ -1,14 +1,8 @@
-# Centerline PNG → SVG Webapp
-
+# Tracer
 A minimal webapp that turns PNGs/JPGs/SVGs into **centerline (skeleton) SVGs** using a Python backend, with optional **Perfect Circle (Fit)** and **Rect** detection for clean geometric outputs.
 
-## Demo
+[tracer.ajerbi.com](https://tracer.ajerbi.com/)
 
-GitHub Pages (UI only):
-
-```
-https://amosjerbi.github.io/tracer/
-```
 ## Local run
 
 For full functionality, you need the backend (local or hosted).
