@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SVG Tracer</title>
+  <link rel="stylesheet" href="styles.css?v=1c2f9d6" />
+  <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script defer src="app.js?v=9b7c3a3"></script>
+</head>
+<body>
+  <div class="app">
+    <main class="main">
+      <section class="workspace">
+        <div class="dropzone card" id="canvas">
+          <div class="drop-hint">
+            <div class="drop-icon"><i class="ph ph-file-image"></i></div>
+            <div>Drop PNG, JPG, SVG or add image</div>
+            <div class="row">
+              <label for="fileInput" class="pill add-image">
+                Add Image
+              </label>
+            </div>
+            <input id="fileInput" class="file-input" type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml" multiple />
+          </div>
+          <div id="preview" class="preview preview-in-canvas">Drag & drop a PNG, JPG, or SVG to auto‑generate the centerline preview.</div>
+        </div>
+
+        <aside class="panel card">
+          <div class="panel-head">
+            <h2>SVG Tracer Centerline</h2>
+          </div>
+
+          <div class="mobile-upload-row">
+            <label for="fileInput" class="pill add-image">Add Image</label>
+          </div>
+
+          <div class="control-section">
+            <div class="control-title">Presets</div>
+            <div class="control-group">
+              <div class="select">
+                <button id="presetSelect" class="select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select-value">Angular (Default)</span>
+                  <span class="select-chevron" aria-hidden="true"></span>
+                </button>
+                <div class="select-menu" role="listbox" aria-label="Presets">
+                <button class="select-option" role="option" data-value="balanced" data-selected="true">Angular (Default)</button>
+                <button class="select-option" role="option" data-value="clean">Clean</button>
+                <button class="select-option" role="option" data-value="smooth">Smooth Cleaner Curves</button>
+                <button class="select-option" role="option" data-value="bold">Bold Thicker Stroke</button>
+                <button class="select-option" role="option" data-value="circle">Perfect Circle Fit</button>
+              </div>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-label">Add shapes behind lines</div>
+                <label class="toggle-switch">
+                  <input id="includeShapes" type="checkbox" />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-label">Overlay original image</div>
+                <label class="toggle-switch">
+                  <input id="overlayOriginal" type="checkbox" />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+              <div class="overlay-row">
+                <div class="overlay-inline">
+                  <span class="overlay-label">Opacity</span>
+                  <input id="strokeColor" type="color" value="#000000" />
+                  <select id="overlayOpacity" class="select-input">
+                    <option value="25">25%</option>
+                    <option value="50">50%</option>
+                    <option value="75">75%</option>
+                    <option value="100">100%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-section">
+            <div class="control-title">Levels Adjustment</div>
+            <div class="control-group">
+              <label>White Threshold <span id="whiteVal">240</span></label>
+              <input id="whiteThreshold" type="range" min="200" max="255" step="1" value="240" />
+            </div>
+          </div>
+
+          <div class="control-section">
+            <div class="control-title">Curve Settings</div>
+            <div class="control-group">
+              <label>Vector Points <span id="pointVal">60</span></label>
+              <input id="pointAmount" type="range" min="10" max="100" step="1" value="60" />
+              <label>Epsilon <span id="epsilonVal">6.0</span></label>
+              <input id="epsilon" type="range" min="1" max="12" step="0.5" value="6" />
+              <label>Curve Smooth <span id="curveVal">2</span></label>
+              <input id="curveSmooth" type="range" min="0" max="12" step="1" value="2" />
+              <label>Stroke Width <span id="strokeVal">15.0</span></label>
+              <input id="strokeWidth" type="range" min="0.1" max="30" step="0.1" value="15" />
+            </div>
+          </div>
+
+          <div class="control-section">
+            <div class="control-title">SVG Conversion</div>
+            <div class="control-group">
+              <div class="row">
+                <a id="downloadLink" class="pill disabled" href="#" download aria-disabled="true">Download SVG</a>
+                <button id="copyBtn" class="pill disabled" type="button" aria-disabled="true">Copy SVG</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-footer">
+            <a class="footer-name" href="https://ajerbi.com" target="_blank" rel="noreferrer">Made by Amos Jerbi</a>
+            <a class="footer-link" href="https://github.com/amosjerbi/tracer" target="_blank" rel="noreferrer">
+              <i class="ph ph-github-logo" aria-hidden="true"></i>
+              <span class="sr-only">GitHub repository</span>
+            </a>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
